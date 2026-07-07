@@ -1,5 +1,6 @@
 const HIGHLIGHTS_KEY = "highlights";
 const PINS_KEY = "pins";
+const PIN_COLORS = ["yellow", "red", "green", "blue"];
 
 const saveBtn = document.getElementById("saveBtn");
 const copyBtn = document.getElementById("copyBtn");
@@ -9,7 +10,13 @@ const listEl = document.getElementById("highlightList");
 
 const pinInput = document.getElementById("pinInput");
 const addPinBtn = document.getElementById("addPinBtn");
+const pinColorPickerEl = document.getElementById("pinColorPicker");
 const pinListEl = document.getElementById("pinList");
+
+const editingHighlightIds = new Set();
+const editingPinIds = new Set();
+
+let composerColor = PIN_COLORS[0];
 
 function showStatus(message) {
   statusEl.textContent = message;
@@ -36,6 +43,27 @@ function toBlockquote(text) {
     .split("\n")
     .map((line) => "> " + line)
     .join("\n");
+}
+
+function buildColorPicker(selectedColor, onSelect) {
+  const wrap = document.createElement("div");
+  wrap.className = "color-picker";
+
+  PIN_COLORS.forEach((color) => {
+    const swatch = document.createElement("button");
+    swatch.type = "button";
+    swatch.className =
+      "color-swatch color-swatch-" + color + (color === selectedColor ? " selected" : "");
+    swatch.setAttribute("aria-label", color);
+    swatch.addEventListener("click", () => {
+      wrap.querySelectorAll(".color-swatch").forEach((b) => b.classList.remove("selected"));
+      swatch.classList.add("selected");
+      onSelect(color);
+    });
+    wrap.appendChild(swatch);
+  });
+
+  return wrap;
 }
 
 // ---- Highlights ----
@@ -67,6 +95,7 @@ function renderHighlights(highlights) {
     deleteBtn.addEventListener("click", async () => {
       const current = await getList(HIGHLIGHTS_KEY);
       const updated = current.filter((h) => h.id !== highlight.id);
+      editingHighlightIds.delete(highlight.id);
       await setList(HIGHLIGHTS_KEY, updated);
       await refreshHighlights();
       showStatus("Highlight deleted.");
@@ -74,19 +103,56 @@ function renderHighlights(highlights) {
 
     header.appendChild(quote);
     header.appendChild(deleteBtn);
-
-    const noteInput = document.createElement("textarea");
-    noteInput.placeholder = "Add a note...";
-    noteInput.value = highlight.note || "";
-    noteInput.addEventListener("change", async () => {
-      const current = await getList(HIGHLIGHTS_KEY);
-      const target = current.find((h) => h.id === highlight.id);
-      if (target) target.note = noteInput.value;
-      await setList(HIGHLIGHTS_KEY, current);
-    });
-
     item.appendChild(header);
-    item.appendChild(noteInput);
+
+    if (editingHighlightIds.has(highlight.id)) {
+      const noteInput = document.createElement("textarea");
+      noteInput.className = "note-edit-input";
+      noteInput.value = highlight.note || "";
+
+      const actions = document.createElement("div");
+      actions.className = "edit-actions";
+
+      const saveBtn2 = document.createElement("button");
+      saveBtn2.textContent = "Save";
+      saveBtn2.addEventListener("click", async () => {
+        const current = await getList(HIGHLIGHTS_KEY);
+        const target = current.find((h) => h.id === highlight.id);
+        if (target) target.note = noteInput.value;
+        editingHighlightIds.delete(highlight.id);
+        await setList(HIGHLIGHTS_KEY, current);
+        await refreshHighlights();
+      });
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", async () => {
+        editingHighlightIds.delete(highlight.id);
+        await refreshHighlights();
+      });
+
+      actions.appendChild(saveBtn2);
+      actions.appendChild(cancelBtn);
+
+      item.appendChild(noteInput);
+      item.appendChild(actions);
+    } else {
+      const noteDisplay = document.createElement("p");
+      noteDisplay.className = "note-display";
+      noteDisplay.textContent = highlight.note || "(no note)";
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "edit-btn";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", async () => {
+        editingHighlightIds.add(highlight.id);
+        await refreshHighlights();
+      });
+
+      item.appendChild(noteDisplay);
+      item.appendChild(editBtn);
+    }
+
     listEl.appendChild(item);
   });
 }
@@ -127,6 +193,7 @@ saveBtn.addEventListener("click", async () => {
 });
 
 clearBtn.addEventListener("click", async () => {
+  editingHighlightIds.clear();
   await setList(HIGHLIGHTS_KEY, []);
   await refreshHighlights();
   showStatus("All highlights cleared.");
@@ -147,10 +214,7 @@ function renderPins(pins) {
 
   pins.forEach((pin) => {
     const item = document.createElement("div");
-    item.className = "pin-item";
-
-    const text = document.createElement("span");
-    text.textContent = pin.text;
+    item.className = "pin-item pin-color-" + (pin.color || "none");
 
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-btn";
@@ -158,13 +222,85 @@ function renderPins(pins) {
     deleteBtn.addEventListener("click", async () => {
       const current = await getList(PINS_KEY);
       const updated = current.filter((p) => p.id !== pin.id);
+      editingPinIds.delete(pin.id);
       await setList(PINS_KEY, updated);
       await refreshPins();
       showStatus("Pin deleted.");
     });
 
-    item.appendChild(text);
-    item.appendChild(deleteBtn);
+    if (editingPinIds.has(pin.id)) {
+      let selectedColor = pin.color || PIN_COLORS[0];
+
+      const textInput = document.createElement("textarea");
+      textInput.className = "note-edit-input";
+      textInput.value = pin.text;
+
+      const picker = buildColorPicker(selectedColor, (color) => {
+        selectedColor = color;
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "edit-actions";
+
+      const saveBtn2 = document.createElement("button");
+      saveBtn2.textContent = "Save";
+      saveBtn2.addEventListener("click", async () => {
+        const text = textInput.value.trim();
+        if (!text) {
+          showStatus("Pin note is empty.");
+          return;
+        }
+        const current = await getList(PINS_KEY);
+        const target = current.find((p) => p.id === pin.id);
+        if (target) {
+          target.text = text;
+          target.color = selectedColor;
+        }
+        editingPinIds.delete(pin.id);
+        await setList(PINS_KEY, current);
+        await refreshPins();
+      });
+
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "Cancel";
+      cancelBtn.addEventListener("click", async () => {
+        editingPinIds.delete(pin.id);
+        await refreshPins();
+      });
+
+      actions.appendChild(saveBtn2);
+      actions.appendChild(cancelBtn);
+
+      const formWrap = document.createElement("div");
+      formWrap.className = "pin-edit-form";
+      formWrap.appendChild(textInput);
+      formWrap.appendChild(picker);
+      formWrap.appendChild(actions);
+
+      item.appendChild(formWrap);
+      item.appendChild(deleteBtn);
+    } else {
+      const text = document.createElement("span");
+      text.className = "pin-text";
+      text.textContent = pin.text;
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "edit-btn";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", async () => {
+        editingPinIds.add(pin.id);
+        await refreshPins();
+      });
+
+      const actions = document.createElement("div");
+      actions.className = "pin-item-actions";
+      actions.appendChild(editBtn);
+      actions.appendChild(deleteBtn);
+
+      item.appendChild(text);
+      item.appendChild(actions);
+    }
+
     pinListEl.appendChild(item);
   });
 }
@@ -181,7 +317,7 @@ async function addPin() {
   }
 
   const pins = await getList(PINS_KEY);
-  pins.push({ id: Date.now().toString(), text });
+  pins.push({ id: Date.now().toString(), text, color: composerColor });
   await setList(PINS_KEY, pins);
   pinInput.value = "";
   await refreshPins();
@@ -189,9 +325,12 @@ async function addPin() {
 }
 
 addPinBtn.addEventListener("click", addPin);
-pinInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") addPin();
-});
+
+pinColorPickerEl.appendChild(
+  buildColorPicker(composerColor, (color) => {
+    composerColor = color;
+  })
+);
 
 // ---- Copy as Markdown ----
 

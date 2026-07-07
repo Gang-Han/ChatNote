@@ -5,9 +5,9 @@ ChatNote is a lightweight Manifest V3 browser extension for saving highlights an
 ## Features
 
 - **Save selected text as highlights** — grabs the current text selection from the active tab and saves it.
-- **Add personal notes to highlights** — each highlight has an editable note field, saved automatically.
+- **Add and edit personal notes on highlights** — each highlight has a note that supports multi-line text; click **Edit** to change it, **Save** to persist, or **Cancel** to discard.
 - **Delete individual highlights** — remove a single highlight without clearing everything else.
-- **Pinned Notes** — a separate section for long-term reminders, shortcuts, or links, kept apart from page highlights.
+- **Pinned Notes** — a separate section for long-term reminders, shortcuts, or links, kept apart from page highlights. Supports multi-line text (Enter inserts a new line; click **Add Pin** to save) and a color label (Yellow/Red/Green/Blue) you can set when adding or editing a pin.
 - **Export highlights as Markdown** — copies saved highlights and their notes to the clipboard, with the source page's title and URL. Pinned notes are excluded from this export by design.
 - **Clear All** — deletes all saved highlights (pinned notes are unaffected).
 

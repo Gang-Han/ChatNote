@@ -78,16 +78,35 @@ button.danger:hover {
   white-space: pre-wrap;
 }
 
-.highlight-item textarea {
+.note-display {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #333333;
+  white-space: pre-wrap;
+}
+
+.note-edit-input {
   width: 100%;
   min-height: 40px;
   box-sizing: border-box;
   font-family: inherit;
   font-size: 12px;
   padding: 4px 6px;
+  margin-bottom: 6px;
   border: 1px solid #d0d0d0;
   border-radius: 4px;
   resize: vertical;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.edit-btn {
+  font-size: 11px;
+  padding: 4px 8px;
 }
 
 .delete-btn {
@@ -126,33 +145,106 @@ hr {
   margin-bottom: 8px;
 }
 
-.pin-input-row input {
+.pin-input-row textarea {
   flex: 1;
   min-width: 0;
+  min-height: 32px;
   font-family: inherit;
   font-size: 12px;
   padding: 5px 6px;
   border: 1px solid #d0d0d0;
   border-radius: 4px;
   box-sizing: border-box;
+  resize: vertical;
+}
+
+.color-picker {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.color-swatch-yellow {
+  background-color: #f5d90a;
+}
+
+.color-swatch-red {
+  background-color: #e5484d;
+}
+
+.color-swatch-green {
+  background-color: #3dbb63;
+}
+
+.color-swatch-blue {
+  background-color: #4c8bf5;
+}
+
+.color-swatch.selected {
+  border-color: #1a1a1a;
 }
 
 #pinList {
-  max-height: 160px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .pin-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 6px;
-  padding: 6px 0;
+  padding: 6px;
   border-bottom: 1px solid #efefef;
+  border-radius: 4px;
   font-size: 12px;
 }
 
-.pin-item span {
+.pin-item.pin-color-yellow {
+  background-color: #fdf6d8;
+  border-left: 3px solid #f5d90a;
+}
+
+.pin-item.pin-color-red {
+  background-color: #fbe7e7;
+  border-left: 3px solid #e5484d;
+}
+
+.pin-item.pin-color-green {
+  background-color: #e3f5e8;
+  border-left: 3px solid #3dbb63;
+}
+
+.pin-item.pin-color-blue {
+  background-color: #e8f0fd;
+  border-left: 3px solid #4c8bf5;
+}
+
+.pin-text {
   flex: 1;
+  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.pin-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.pin-edit-form {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
