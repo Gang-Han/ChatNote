@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Chat Note",
+  "version": "1.1.0",
+  "description": "Select text on any webpage, save it as a highlight, attach a note, and export everything as Markdown.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

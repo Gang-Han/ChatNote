@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat Note</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <h1>Chat Note</h1>
+
+  <div class="actions">
+    <button id="saveBtn">Save Selected Text</button>
+    <button id="copyBtn">Copy All as Markdown</button>
+    <button id="clearBtn" class="danger">Clear All</button>
+  </div>
+
+  <p id="status"></p>
+
+  <div id="highlightList"></div>
+
+  <hr />
+
+  <h2>Pinned Notes</h2>
+  <div class="pin-input-row">
+    <input type="text" id="pinInput" placeholder="Type a pinned note..." />
+    <button id="addPinBtn">Add Pin</button>
+  </div>
+  <div id="pinList"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
