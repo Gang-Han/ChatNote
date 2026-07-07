@@ -1,6 +1,8 @@
 const HIGHLIGHTS_KEY = "highlights";
 const PINS_KEY = "pins";
 const PIN_COLORS = ["yellow", "red", "green", "blue"];
+const RICH_ALLOWED_TAGS = new Set(["BR", "DIV", "SPAN", "MARK"]);
+const INLINE_HL_CLASS_PATTERN = /^inline-hl-(yellow|red|green|blue)$/;
 
 const saveBtn = document.getElementById("saveBtn");
 const copyBtn = document.getElementById("copyBtn");
@@ -8,7 +10,7 @@ const clearBtn = document.getElementById("clearBtn");
 const statusEl = document.getElementById("status");
 const listEl = document.getElementById("highlightList");
 
-const pinInput = document.getElementById("pinInput");
+const pinComposerEl = document.getElementById("pinComposer");
 const addPinBtn = document.getElementById("addPinBtn");
 const pinColorPickerEl = document.getElementById("pinColorPicker");
 const pinListEl = document.getElementById("pinList");
@@ -64,6 +66,123 @@ function buildColorPicker(selectedColor, onSelect) {
   });
 
   return wrap;
+}
+
+// ---- Rich text (pinned note inline highlighting) ----
+
+function sanitizeFragment(root) {
+  Array.from(root.childNodes).forEach((child) => {
+    if (child.nodeType === Node.ELEMENT_NODE) {
+      sanitizeFragment(child);
+      if (!RICH_ALLOWED_TAGS.has(child.tagName)) {
+        while (child.firstChild) root.insertBefore(child.firstChild, child);
+        root.removeChild(child);
+      } else {
+        Array.from(child.attributes).forEach((attr) => {
+          const keepClass =
+            child.tagName === "MARK" &&
+            attr.name === "class" &&
+            INLINE_HL_CLASS_PATTERN.test(attr.value);
+          if (!keepClass) child.removeAttribute(attr.name);
+        });
+      }
+    } else if (child.nodeType !== Node.TEXT_NODE) {
+      root.removeChild(child);
+    }
+  });
+}
+
+function sanitizeNoteHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  sanitizeFragment(template.content);
+  return template.innerHTML;
+}
+
+function plainTextToHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML.replace(/\n/g, "<br>");
+}
+
+function insertLineBreakAtSelection() {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0) return;
+  const range = selection.getRangeAt(0);
+  range.deleteContents();
+  const br = document.createElement("br");
+  range.insertNode(br);
+  range.setStartAfter(br);
+  range.setEndAfter(br);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function applyInlineHighlight(editableEl, color) {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    showStatus("Select text in the note to highlight.");
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!editableEl.contains(range.commonAncestorContainer)) {
+    showStatus("Select text in the note to highlight.");
+    return;
+  }
+
+  const mark = document.createElement("mark");
+  mark.className = "inline-hl-" + color;
+
+  try {
+    range.surroundContents(mark);
+  } catch (err) {
+    const fragment = range.extractContents();
+    mark.appendChild(fragment);
+    range.insertNode(mark);
+  }
+
+  selection.removeAllRanges();
+  editableEl.focus();
+}
+
+function buildRichNoteEditor(initialHtml) {
+  const wrap = document.createElement("div");
+  wrap.className = "rich-editor-wrap";
+
+  const editable = document.createElement("div");
+  editable.className = "rich-editor";
+  editable.contentEditable = "true";
+  editable.innerHTML = initialHtml || "";
+  editable.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      insertLineBreakAtSelection();
+    }
+  });
+
+  const toolbarLabel = document.createElement("span");
+  toolbarLabel.className = "picker-label";
+  toolbarLabel.textContent = "Highlight selected text";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "highlight-toolbar";
+  PIN_COLORS.forEach((color) => {
+    const swatch = document.createElement("button");
+    swatch.type = "button";
+    swatch.className = "hl-swatch hl-swatch-" + color;
+    swatch.setAttribute("aria-label", "Highlight " + color);
+    // Prevent the editable from losing its text selection when the swatch is clicked.
+    swatch.addEventListener("mousedown", (e) => e.preventDefault());
+    swatch.addEventListener("click", () => applyInlineHighlight(editable, color));
+    toolbar.appendChild(swatch);
+  });
+
+  wrap.appendChild(toolbarLabel);
+  wrap.appendChild(toolbar);
+  wrap.appendChild(editable);
+
+  return { wrap, editable };
 }
 
 // ---- Highlights ----
@@ -231,13 +350,19 @@ function renderPins(pins) {
     if (editingPinIds.has(pin.id)) {
       let selectedColor = pin.color || PIN_COLORS[0];
 
-      const textInput = document.createElement("textarea");
-      textInput.className = "note-edit-input";
-      textInput.value = pin.text;
+      const initialHtml = pin.content || plainTextToHtml(pin.text || "");
+      const editor = buildRichNoteEditor(initialHtml);
 
       const picker = buildColorPicker(selectedColor, (color) => {
         selectedColor = color;
       });
+      const pickerRow = document.createElement("div");
+      pickerRow.className = "picker-row";
+      const pickerLabel = document.createElement("span");
+      pickerLabel.className = "picker-label";
+      pickerLabel.textContent = "Background";
+      pickerRow.appendChild(pickerLabel);
+      pickerRow.appendChild(picker);
 
       const actions = document.createElement("div");
       actions.className = "edit-actions";
@@ -245,15 +370,17 @@ function renderPins(pins) {
       const saveBtn2 = document.createElement("button");
       saveBtn2.textContent = "Save";
       saveBtn2.addEventListener("click", async () => {
-        const text = textInput.value.trim();
-        if (!text) {
+        const plainText = editor.editable.textContent.trim();
+        if (!plainText) {
           showStatus("Pin note is empty.");
           return;
         }
+        const content = sanitizeNoteHtml(editor.editable.innerHTML);
         const current = await getList(PINS_KEY);
         const target = current.find((p) => p.id === pin.id);
         if (target) {
-          target.text = text;
+          target.text = plainText;
+          target.content = content;
           target.color = selectedColor;
         }
         editingPinIds.delete(pin.id);
@@ -273,8 +400,8 @@ function renderPins(pins) {
 
       const formWrap = document.createElement("div");
       formWrap.className = "pin-edit-form";
-      formWrap.appendChild(textInput);
-      formWrap.appendChild(picker);
+      formWrap.appendChild(editor.wrap);
+      formWrap.appendChild(pickerRow);
       formWrap.appendChild(actions);
 
       item.appendChild(formWrap);
@@ -282,7 +409,9 @@ function renderPins(pins) {
     } else {
       const text = document.createElement("span");
       text.className = "pin-text";
-      text.textContent = pin.text;
+      text.innerHTML = pin.content
+        ? sanitizeNoteHtml(pin.content)
+        : plainTextToHtml(pin.text || "");
 
       const editBtn = document.createElement("button");
       editBtn.className = "edit-btn";
@@ -309,17 +438,21 @@ async function refreshPins() {
   renderPins(await getList(PINS_KEY));
 }
 
+const composerEditor = buildRichNoteEditor("");
+pinComposerEl.appendChild(composerEditor.wrap);
+
 async function addPin() {
-  const text = pinInput.value.trim();
-  if (!text) {
+  const plainText = composerEditor.editable.textContent.trim();
+  if (!plainText) {
     showStatus("Pin note is empty.");
     return;
   }
 
+  const content = sanitizeNoteHtml(composerEditor.editable.innerHTML);
   const pins = await getList(PINS_KEY);
-  pins.push({ id: Date.now().toString(), text, color: composerColor });
+  pins.push({ id: Date.now().toString(), text: plainText, content, color: composerColor });
   await setList(PINS_KEY, pins);
-  pinInput.value = "";
+  composerEditor.editable.innerHTML = "";
   await refreshPins();
   showStatus("Pin added.");
 }

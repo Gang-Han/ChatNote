@@ -139,23 +139,106 @@ hr {
   border-top: 1px solid #e5e5e5;
 }
 
-.pin-input-row {
+.pin-composer {
   display: flex;
+  flex-direction: column;
   gap: 6px;
   margin-bottom: 8px;
 }
 
-.pin-input-row textarea {
-  flex: 1;
-  min-width: 0;
-  min-height: 32px;
+.picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picker-label {
+  font-size: 11px;
+  color: #666666;
+}
+
+.rich-editor-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.highlight-toolbar {
+  display: flex;
+  gap: 6px;
+}
+
+.hl-swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.hl-swatch-yellow {
+  background-color: #f5d90a;
+}
+
+.hl-swatch-red {
+  background-color: #e5484d;
+}
+
+.hl-swatch-green {
+  background-color: #3dbb63;
+}
+
+.hl-swatch-blue {
+  background-color: #4c8bf5;
+}
+
+.rich-editor {
+  min-height: 48px;
+  max-height: 160px;
+  overflow-y: auto;
+  box-sizing: border-box;
   font-family: inherit;
   font-size: 12px;
+  color: #1a1a1a;
   padding: 5px 6px;
   border: 1px solid #d0d0d0;
   border-radius: 4px;
-  box-sizing: border-box;
-  resize: vertical;
+  background-color: #ffffff;
+  outline: none;
+}
+
+.rich-editor:focus {
+  border-color: #8ab4f8;
+}
+
+mark {
+  background: none;
+  color: inherit;
+}
+
+.inline-hl-yellow {
+  background-color: #fbe98c;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.inline-hl-red {
+  background-color: #f5b8ba;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.inline-hl-green {
+  background-color: #a8e0ba;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.inline-hl-blue {
+  background-color: #a9c8f5;
+  border-radius: 2px;
+  padding: 0 1px;
 }
 
 .color-picker {
@@ -247,4 +330,5 @@ hr {
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 6px;
 }

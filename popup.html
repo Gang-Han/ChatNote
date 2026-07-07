@@ -21,11 +21,14 @@
   <hr />
 
   <h2>Pinned Notes</h2>
-  <div class="pin-input-row">
-    <textarea id="pinInput" placeholder="Type a pinned note..." rows="2"></textarea>
+  <div class="pin-composer">
+    <div id="pinComposer"></div>
+    <div class="picker-row">
+      <span class="picker-label">Background</span>
+      <div id="pinColorPicker"></div>
+    </div>
     <button id="addPinBtn">Add Pin</button>
   </div>
-  <div id="pinColorPicker"></div>
   <div id="pinList"></div>
 
   <script src="popup.js"></script>
